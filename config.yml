@@ -52,9 +52,7 @@ Name: "Joseph Dbratt" # Person Name On Card
 
 # PATCHED!!!!!!!!!!!!!!!!!!
 # Inbuilt 1Month Generator ->
-UsePromoGen: false # Generates 1Month Promo Automatically Using Opera GX X Discord Collab [ Alienware Soon ] [Doesnt Work Fix In Next Update]
 Capsolver: "" # capsolver key here , put proxy in proxies.txt
-PromoType: "Opera GX" # Alienware Soon
 # PATCHED!!!!!!!!!!!!!!^^^^
 
 # Captcha Settings ->
