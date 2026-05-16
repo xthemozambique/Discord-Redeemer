@@ -118,8 +118,6 @@ try:
     state = config_data["State"]
     city = config_data["City"]
     name = config_data["Name"]
-    usepromo_gen = config_data["UsePromoGen"]
-    promo_type = config_data["PromoType"]
     capsolver_k = config_data["Capsolver"]
     use_solver = config_data["Use_Solver"]
     service = config_data["Service"]
@@ -200,7 +198,6 @@ ascii_art = """
 print(Colorate.Horizontal(Colors.purple_to_blue, Center.XCenter(ascii_art)))
 print(f"{Fore.LIGHTCYAN_EX}Theme           = {theme}")
 print(f"{Fore.LIGHTCYAN_EX}Customize-Token = {customize}")
-print(f"{Fore.LIGHTCYAN_EX}Use-Promo-Gen   = {usepromo_gen}")
 print(f"{Fore.LIGHTCYAN_EX}Log-Webhook     = {Log_Webhook}")
 print(f"{Fore.LIGHTCYAN_EX}Engine-Status   = Started")
 print("")
@@ -395,213 +392,6 @@ def auth_email(proxy, token):
         return jsonr2.json()
     except:
         print("TEMP_MAIL_SITE_DOWN TRY AGAIN LATER!")
-
-
-class Utils:
-    def get_soln() -> str | None:
-        try:
-            soln = capsolver.solve(
-                {
-                    "type": "ReCaptchaV2TaskProxyLess",
-                    "websiteURL": "https://auth.opera.com/account/authenticate/email",
-                    "websiteKey": "6LdYcFgaAAAAAEH3UnuL-_eZOsZc-32lGOyrqfA4",
-                }
-            )["gRecaptchaResponse"]
-            return soln
-        except Exception as e:
-            print("CAPTCHA_ERROR")
-            return None
-
-    def update_title() -> None:
-        return
-
-
-class Opera:
-    def __init__(self, proxy) -> None:
-        self.proxy = proxy
-        self.session = requests.Session()
-        self.session.proxies = proxy
-        self.user = secrets.token_hex(10)
-        try:
-            self.email, self.token = str(get_email(proxy)).split(";")
-        except:
-            return
-        self.user_agent = secrets.token_hex(10)  # fire user agent
-        self.session.headers = {
-            "user-agent": self.user_agent,
-        }
-        Logger.Debug("Got Promo Task, Generating One Opera Promo", "N/A", "N/A", "N/A")
-
-    def exec_request(self, *args, **kwargs) -> requests.Response:
-        for x in range(50):
-            try:
-                return self.session.request(*args, **kwargs)
-            except:
-                # print_exc()
-                continue
-        else:
-            Logger.Error(
-                "PromoGEN Response: Failed To Execute Request After 50x Retries!",
-                "N/A",
-                "N/A",
-                "N/A",
-            )
-
-    def post_request(self, *args, **kwargs) -> requests.Response:
-        return self.exec_request("POST", *args, **kwargs)
-
-    def get_request(self, *args, **kwargs) -> requests.Response:
-        return self.exec_request("GET", *args, **kwargs)
-
-    def regAndAuth(self) -> bool:
-        self.get_request(
-            "https://auth.opera.com/account/authenticate", allow_redirects=True
-        )
-        start = time.time()
-        soln = Utils.get_soln()
-        if not soln:
-            return False
-        self.session.headers["x-language-locale"] = "en"
-        self.session.headers["referer"] = (
-            "https://auth.opera.com/account/authenticate/signup"
-        )
-        signUp = self.post_request(
-            "https://auth.opera.com/account/v4/api/signup",
-            json={
-                "email": self.email,
-                "password": self.user,
-                "password_repeated": self.user,
-                "marketing_consent": False,
-                "captcha": soln,
-                "services": ["gmx"],
-            },
-        )
-        if "429" in signUp.text:
-            return False
-        if not signUp.status_code in [200, 201, 204]:
-            return False
-        self.csrf = self.session.cookies.get_dict()["__Host-csrftoken"]
-        self.session.headers["x-csrftoken"] = self.session.cookies.get_dict()[
-            "__Host-csrftoken"
-        ]
-        profile = self.exec_request(
-            "PATCH",
-            "https://auth.opera.com/api/v1/profile",
-            json={"username": self.user},
-        )
-        if not profile.status_code in [200, 201, 204]:
-            return False
-        self.session.headers = {
-            "authority": "api.gx.me",
-            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "accept-language": "en-US,en;q=0.9",
-            "referer": "https://gx.me/signup/?utm_source=gxdiscord",
-            "sec-ch-ua": '"Not A(Brand";v="99", "Opera GX";v="107", "Chromium";v="121"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-            "sec-fetch-dest": "document",
-            "sec-fetch-mode": "navigate",
-            "sec-fetch-site": "same-site",
-            "upgrade-insecure-requests": "1",
-            "user-agent": self.user_agent,
-        }
-        time.sleep(2)
-        self.get_request(
-            "https://api.gx.me/session/login?site=gxme&target=%2F", allow_redirects=True
-        )
-        self.get_request(
-            "https://auth.opera.com/account/login-redirect?service=gmx",
-            allow_redirects=True,
-        )
-        return True
-
-    def gen(self) -> str | None:
-        global genned
-        for x in range(3):
-            if not self.regAndAuth():
-                continue
-            break
-        else:
-            return
-        json = {"email": self.email}
-        a = self.post_request(
-            "https://auth.opera.com/account/request-email-verification",
-            json=json,
-            headers={
-                "Accept": "application/json",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Connection": "keep-alive",
-                "Content-Length": "47",
-                "Content-Type": "application/json",
-                "Host": "auth.opera.com",
-                "Origin": "https://auth.opera.com",
-                "Referer": "https://auth.opera.com/account/edit-profile",
-                "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Opera";v="108"',
-                "sec-ch-ua-mobile": "?0",
-                "sec-ch-ua-platform": '"Windows"',
-                "Sec-Fetch-Dest": "empty",
-                "Sec-Fetch-Mode": "cors",
-                "Sec-Fetch-Site": "same-origin",
-                "User-Agent": self.user_agent,
-                "X-CSRFToken": self.csrf,
-            },
-        )
-        time.sleep(10)
-        try:
-            full_json = auth_email(self.proxy, self.token)
-            Vurl = full_json["email"][0]["body"]
-            Incomplete = Vurl.split(
-                "https://auth.opera.com/account/email-verification?key="
-            )[1].split("&service=auth")[0]
-            FormattedUrl = (
-                "https://auth.opera.com/account/email-verification?key="
-                + Incomplete
-                + "&service=auth"
-            )
-        except:
-            return
-        self.get_request(FormattedUrl, allow_redirects=True)
-        headers = {
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Connection": "keep-alive",
-            "Content-Length": "0",
-            "Host": "auth.opera.com",
-            "Origin": "https://auth.opera.com",
-            "Referer": "https://auth.opera.com/account/email-verification/result?service=auth",
-            "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Opera";v="108"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "User-Agent": self.user_agent,
-            "X-CSRFToken": self.csrf,
-        }
-        r = self.post_request(
-            "https://auth.opera.com/account/email-verification/confirm", headers=headers
-        )
-        if r.status_code == 204:
-            pass
-        time.sleep(8)
-        auth = self.get_request("https://api.gx.me/profile/token").json()["data"]
-        promoReq = self.post_request(
-            "https://discord.opr.gg/v2/direct-fulfillment",
-            headers={
-                "authorization": auth,
-                "origin": "https://www.opera.com",
-                "referer": "https://www.opera.com/",
-                "user-agent": self.user_agent,
-            },
-        )
-        if not "token" in promoReq.text or not promoReq.ok:
-            return
-        promo = "https://discord.com/billing/partner-promotions/1180231712274387115/{}".format(
-            promoReq.json()["token"]
-        )
-        return promo
 
 
 with open("input/Proxies.txt", "r") as file:
@@ -6269,10 +6059,8 @@ class Worker:
             else:
                 Logger.Error("Wrong Vcc Format", "N/A", "N/A", vcc)
                 return
-            if "-" in promo and not "1180231712274387115" in promo:
+            if "-" in promo:
                 self.type = "Alienware"
-            elif "1180231712274387115" in promo:
-                self.type = "Opera GX"
             else:
                 self.type = "Xbox GamePass"
             self.RETRIES = 0
@@ -6293,51 +6081,7 @@ class Worker:
     def Format_Promotion(self) -> str | None:
         global Fails
         try:
-            if self.type == "Opera GX":
-                self.headers = {
-                    "authority": "discord.com",
-                    "accept": "*/*",
-                    "accept-language": "en-US,en;q=0.9",
-                    "authorization": self.token,
-                    "content-type": "application/json",
-                    "origin": "https://discord.com",
-                    "referer": self.full_promo,
-                    "sec-ch-ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Microsoft Edge";v="122"',
-                    "sec-ch-ua-mobile": "?0",
-                    "sec-ch-ua-platform": '"Windows"',
-                    "sec-fetch-dest": "empty",
-                    "sec-fetch-mode": "cors",
-                    "sec-fetch-site": "same-origin",
-                    "user-agent": self.ua,
-                    "x-debug-options": "bugReporterEnabled",
-                    "x-discord-locale": "en-US",
-                    "x-discord-timezone": "Europe/Budapest",
-                    "x-super-properties": self.xprop,
-                }
-                self.json = {
-                    "jwt": self.full_promo.split(
-                        "https://discord.com/billing/partner-promotions/1180231712274387115/"
-                    )[1]
-                }
-                response = self.session.post(
-                    "https://discord.com/api/v9/entitlements/partner-promotions/1180231712274387115",
-                    headers=self.headers,
-                    json=self.json,
-                    cookies=self.Obtain_Cookies(),
-                )
-                if response.status_code in (200, 204):
-                    return response.json()["code"]
-                else:
-                    Logger.Error(
-                        f"Failed To Get Promo Code : {response.json()}",
-                        self.token,
-                        self.full_vcc,
-                        self.full_promo,
-                    )
-                    Fails += 1
-                    return None
-
-            elif self.type == "Alienware" or "Xbox GamePass":
+            if self.type == "Alienware" or "Xbox GamePass":
                 if "https://discord.com/billing/promotions/" in self.full_promo:
                     code = self.full_promo.split(
                         "https://discord.com/billing/promotions/"
